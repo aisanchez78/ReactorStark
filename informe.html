@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Actividad 2 - Integración de sistemas IoT</title>
+<style>
+body { font-family: Calibri, Arial, sans-serif; font-size: 12pt; line-height: 1.5; color: #172033; }
+h1, h2, h3 { color: #12355b; }
+h1 { text-align: center; margin-top: 100px; }
+.cover { text-align: center; }
+.note { border: 1px solid #d59b27; background: #fff7df; padding: 10px; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+th, td { border: 1px solid #777; padding: 6px; vertical-align: top; }
+th { background: #e7eef7; }
+pre { font-family: Menlo, Consolas, monospace; font-size: 9pt; white-space: pre-wrap; background: #f3f5f7; padding: 8px; }
+.pagebreak { page-break-before: always; }
+</style>
+</head>
+<body>
+<section class="cover">
+<h1>ACTIVIDAD 2 (GRUPAL)<br>INTEGRACIÓN DE SISTEMAS IoT</h1>
+<h2>Gestión de la monitorización del núcleo de energía del reactor de Tony Stark</h2>
+<p>Asignatura: Tecnologías emergentes</p>
+<p>Grupo: <strong>[COMPLETAR]</strong></p>
+<p>Integrantes: <strong>[COMPLETAR]</strong></p>
+<p>Fecha: <strong>[COMPLETAR]</strong></p>
+</section>
+
+<h2>1. Introducción y objetivos</h2>
+<p>Stark Industries necesita supervisar un reactor experimental mediante telemetría IoT para observar la carga del núcleo, la estabilidad del campo, la refrigeración, la latencia de JARVIS y el consumo de los repulsores. ThingSpeak proporciona el canal de almacenamiento, visualización y acceso HTTP que permite centralizar estas mediciones.</p>
+<p>El objetivo es definir el canal de cinco campos e implementar una aplicación ejecutable que permita leer y escribir sus mediciones. La aplicación procesa las diez muestras experimentales del enunciado y comunica los resultados o errores de conexión en la terminal.</p>
+
+<h2>2. Diseño del canal ThingSpeak</h2>
+<p>Se debe crear un canal con los siguientes campos, respetando el orden porque la aplicación los envía como <code>field1</code> a <code>field5</code>.</p>
+<table>
+<tr><th>Campo API</th><th>Nombre</th><th>Unidad / validación</th></tr>
+<tr><td>field1</td><td>Carga de energía del núcleo</td><td>%; de 0 a 100</td></tr>
+<tr><td>field2</td><td>Índice de estabilidad del campo</td><td>Escala 0–100</td></tr>
+<tr><td>field3</td><td>Flujo de refrigerante de vibranium</td><td>Escala 0–100</td></tr>
+<tr><td>field4</td><td>Latencia del protocolo JARVIS</td><td>ms; no negativa</td></tr>
+<tr><td>field5</td><td>Consumo energético de los repulsores</td><td>W; no negativo</td></tr>
+</table>
+<p><strong>Identificador del canal:</strong> [COMPLETAR CON EL CHANNEL ID REAL].</p>
+<p><strong>Autor:</strong> [COMPLETAR].</p>
+<p><strong>Visibilidad:</strong> pública, para que el profesorado pueda consultar el canal.</p>
+<p><strong>API Requests:</strong> escritura mediante <code>POST https://api.thingspeak.com/update.json</code> con la clave de escritura y los cinco campos; lectura mediante <code>GET https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?api_key={READ_API_KEY}&amp;results=10</code>.</p>
+<p class="note"><strong>Acción necesaria antes de entregar:</strong> crear el canal en la cuenta del grupo, confirmar que es público y sustituir los campos pendientes por el identificador y autor reales. Las claves API son secretas: no deben escribirse en esta memoria ni mostrarse en capturas sin ocultarlas.</p>
+
+<h2>3. Aplicación desarrollada</h2>
+<p>Se implementó una aplicación de consola en Python 3, sin dependencias externas. El módulo <code>main.py</code> separa la configuración del canal, las llamadas HTTP y la presentación de resultados. La configuración se lee desde variables de entorno definidas en <code>.env</code>.</p>
+<p>La aplicación ofrece cinco operaciones:</p>
+<ul>
+<li><strong>preview:</strong> muestra las diez muestras sin conexión ni credenciales.</li>
+<li><strong>write:</strong> envía una medición de cinco valores y muestra el identificador de entrada.</li>
+<li><strong>read:</strong> recupera y presenta las últimas mediciones del canal.</li>
+<li><strong>samples:</strong> carga todas las muestras del enunciado, respetando al menos 15 segundos entre escrituras para evitar rechazos por frecuencia.</li>
+<li><strong>web:</strong> sirve un panel local con un gráfico histórico por campo, una tabla de lecturas, actualización manual y envío de mediciones; las claves permanecen en el servidor.</li>
+</ul>
+<p>Se validan los límites 0–100 de los tres primeros campos, los valores no negativos de latencia y consumo, el número de resultados solicitado y la disponibilidad de las claves necesarias. Los errores HTTP y de conectividad se muestran sin imprimir las claves.</p>
+
+<h2>4. Instalación, configuración y uso</h2>
+<ol>
+<li>Instalar Python 3.10 o posterior y descargar/descomprimir el directorio <code>actividad2_iot</code>.</li>
+<li>Crear un canal público con los cinco campos indicados y copiar su ID y claves API.</li>
+<li>Copiar <code>.env.example</code> a <code>.env</code>, sustituir localmente los valores por las credenciales del canal. La aplicación carga automáticamente sus variables al ejecutar <code>read</code>, <code>write</code>, <code>samples</code> o <code>web</code>; las variables ya definidas en el entorno tienen prioridad.</li>
+<li>Desde el directorio de la aplicación, ejecutar:</li>
+</ol>
+<pre>python3 main.py --help
+python3 main.py preview
+python3 main.py write --field1 52.4 --field2 96.8 --field3 35.2 --field4 118.6 --field5 42.3
+python3 main.py read --results 10
+python3 main.py samples
+python3 main.py web</pre>
+<p>Al ejecutar <code>python3 main.py web</code>, abrir <code>http://127.0.0.1:8000</code> en el navegador. El panel muestra un gráfico histórico independiente para cada uno de los cinco campos; el selector limita cuántas lecturas se consultan. El botón de actualización vuelve a consultar ThingSpeak; el formulario envía los cinco valores y actualiza la lectura después de una escritura correcta.</p>
+<p>La operación <code>samples</code> puede tardar aproximadamente 135 segundos, ya que el envío de las diez filas requiere nueve esperas de 15 segundos. El archivo <code>.env</code> está excluido mediante <code>.gitignore</code> y debe mantenerse fuera del ZIP si contiene claves reales.</p>
+
+<h2>5. Datos experimentales</h2>
+<table>
+<tr><th>N.º</th><th>field1 (%)</th><th>field2</th><th>field3</th><th>field4 (ms)</th><th>field5 (W)</th></tr>
+<tr><td>1</td><td>52.4</td><td>96.8</td><td>35.2</td><td>118.6</td><td>42.3</td></tr>
+<tr><td>2</td><td>58.7</td><td>94.3</td><td>41.9</td><td>126.4</td><td>46.8</td></tr>
+<tr><td>3</td><td>63.9</td><td>91.5</td><td>48.6</td><td>162.8</td><td>51.7</td></tr>
+<tr><td>4</td><td>69.2</td><td>88.1</td><td>56.3</td><td>134.9</td><td>57.9</td></tr>
+<tr><td>5</td><td>74.6</td><td>84.7</td><td>63.5</td><td>148.2</td><td>63.4</td></tr>
+<tr><td>6</td><td>79.8</td><td>81.2</td><td>71.8</td><td>178.5</td><td>69.6</td></tr>
+<tr><td>7</td><td>84.3</td><td>77.6</td><td>79.4</td><td>196.7</td><td>76.2</td></tr>
+<tr><td>8</td><td>88.9</td><td>73.8</td><td>86.7</td><td>214.3</td><td>82.5</td></tr>
+<tr><td>9</td><td>92.5</td><td>70.4</td><td>92.1</td><td>231.6</td><td>88.7</td></tr>
+<tr><td>10</td><td>95.8</td><td>67.9</td><td>96.4</td><td>249.8</td><td>94.1</td></tr>
+</table>
+
+<h2>6. Verificación y evidencias</h2>
+<p>La suite automatizada se ejecuta con <code>python3 -m unittest discover -s tests -v</code>. Las pruebas verifican la composición de una escritura con cinco campos, la lectura JSON, el tratamiento de una escritura rechazada, la validación del intervalo mínimo, la configuración ausente y la vista previa sin credenciales. Las peticiones HTTP se simulan; por ello estas pruebas no sustituyen la comprobación en el canal real.</p>
+<p><strong>Resultado local:</strong> 7 pruebas unitarias superadas. La vista previa muestra las diez filas del enunciado sin realizar llamadas a la API.</p>
+<p><strong>Evidencias que debe incorporar el grupo:</strong></p>
+<ol>
+<li>Captura de la configuración del canal con sus cinco campos y visibilidad pública.</li>
+<li>Captura de API Keys con las claves ocultas y el Channel ID visible.</li>
+<li>Capturas de terminal de una lectura y una escritura correctas, evitando mostrar claves.</li>
+<li>Captura de la vista del canal que muestre las mediciones después de cargar los datos.</li>
+</ol>
+<p class="note">No se adjuntan capturas remotas ficticias: deben generarse después de configurar y ejecutar la aplicación con el canal real del grupo.</p>
+
+<h2>7. Conclusiones</h2>
+<p>La solución integra una aplicación ejecutable con las operaciones HTTP de ThingSpeak y conserva las diez muestras del enunciado en el orden de los campos definido. El uso de variables de entorno evita incluir credenciales en el código y el intervalo entre escrituras reduce errores por limitación de frecuencia. Para cerrar la validación de extremo a extremo es imprescindible crear el canal público del grupo, cargar las claves localmente, ejecutar las operaciones y añadir las evidencias reales requeridas.</p>
+
+<h2>Referencias</h2>
+<ul>
+<li>UNIR. <em>Actividad 2: Integración de sistemas IoT. Gestión de la monitorización del núcleo de energía del Reactor de Tony Stark</em> (enunciado proporcionado).</li>
+<li>MathWorks. ThingSpeak API: <a href="https://www.mathworks.com/help/thingspeak/">https://www.mathworks.com/help/thingspeak/</a>.</li>
+<li>MathWorks. Channel Settings: <a href="https://es.mathworks.com/help/thingspeak/channel-settings.html">https://es.mathworks.com/help/thingspeak/channel-settings.html</a>.</li>
+<li>MathWorks. Write Data: <a href="https://es.mathworks.com/help/thingspeak/writedata.html">https://es.mathworks.com/help/thingspeak/writedata.html</a>.</li>
+<li>MathWorks. Read Data from a Channel: <a href="https://es.mathworks.com/help/thingspeak/read-data-from-channel.html">https://es.mathworks.com/help/thingspeak/read-data-from-channel.html</a>.</li>
+</ul>
+</body>
+</html>

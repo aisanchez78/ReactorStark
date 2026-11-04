@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101a22">
+  <title>Monitorización · Reactor experimental</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #101a22;
+      color: #eff5f5;
+      font-synthesis: none;
+      --panel: #192630;
+      --panel-border: #2a3c48;
+      --muted: #9aadb6;
+      --accent: #6de0bd;
+      --danger: #ff9f91;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 82% 0%, #1c3b3d 0, transparent 38rem),
+        #101a22;
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+
+    .shell { width: min(1120px, calc(100% - 36px)); margin: 0 auto; padding: 38px 0 56px; }
+    .topline { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 34px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid #3c796c;
+      border-radius: 12px; color: var(--accent); background: #18332f; font-size: 20px;
+    }
+    .eyebrow { margin: 0 0 5px; color: var(--accent); font-size: 11px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(24px, 4vw, 36px); letter-spacing: -.04em; }
+    .channel { color: var(--muted); font-size: 13px; text-align: right; }
+    .channel strong { display: block; margin-top: 5px; color: #eff5f5; font-size: 14px; font-weight: 600; }
+
+    .section-heading { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin: 32px 0 14px; }
+    h2 { margin: 0; font-size: 17px; letter-spacing: -.02em; }
+    .subheading { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .panel, .metric, .table-wrap { border: 1px solid var(--panel-border); border-radius: 16px; background: rgb(25 38 48 / 92%); }
+    .metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+    .metric { min-height: 122px; padding: 17px; }
+    .metric-label { min-height: 34px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .metric-value { margin-top: 14px; font-size: clamp(22px, 3vw, 30px); font-weight: 680; letter-spacing: -.05em; }
+    .metric-unit { margin-left: 5px; color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: 0; }
+
+    .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .chart-card { min-width: 0; padding: 18px 18px 12px; }
+    .chart-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .chart-title { margin: 0; font-size: 14px; font-weight: 650; }
+    .chart-unit { color: var(--muted); font-size: 12px; }
+    .chart { display: block; width: 100%; height: auto; overflow: visible; margin-top: 10px; }
+    .chart-grid { stroke: #30414b; stroke-width: 1; }
+    .chart-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-point { fill: #192630; stroke: var(--accent); stroke-width: 2; }
+    .chart-axis-label { fill: var(--muted); font-size: 11px; }
+    .chart-empty { fill: var(--muted); font-size: 13px; }
+
+    .toolbar { display: flex; align-items: center; gap: 10px; }
+    select, .field input {
+      width: 100%; padding: 11px 12px; border: 1px solid #354955; border-radius: 9px;
+      outline: none; background: #101a22; color: #eff5f5;
+    }
+    select:focus, .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgb(109 224 189 / 12%); }
+    .toolbar select { width: auto; min-width: 100px; }
+    .button {
+      display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 8px;
+      padding: 0 15px; border: 1px solid #3d8d78; border-radius: 9px; background: #236754;
+      color: white; font-weight: 650; transition: background .15s, transform .15s;
+    }
+    .button:hover:not(:disabled) { transform: translateY(-1px); background: #2d8068; }
+    .button:disabled { cursor: wait; opacity: .6; }
+    .button.secondary { border-color: #3a4d59; background: #24343e; color: #e1eaec; }
+    .button.secondary:hover:not(:disabled) { background: #30444f; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; white-space: nowrap; text-align: left; }
+    th, td { padding: 14px 16px; border-bottom: 1px solid #2a3a44; font-size: 13px; }
+    th { color: var(--muted); font-size: 11px; font-weight: 650; letter-spacing: .04em; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody td:not(:first-child) { font-variant-numeric: tabular-nums; }
+    .empty { padding: 30px; color: var(--muted); text-align: center; }
+
+    .form-panel { padding: 20px; }
+    .form-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+    .field label { display: block; min-height: 34px; margin-bottom: 7px; color: #bfccd1; font-size: 12px; line-height: 1.4; }
+    .form-footer { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-top: 20px; }
+    .hint { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .status { min-height: 22px; margin: 14px 0 0; color: var(--accent); font-size: 13px; }
+    .status.error { color: var(--danger); }
+
+    @media (max-width: 850px) {
+      .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .form-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .shell { width: min(100% - 24px, 1120px); padding-top: 22px; }
+      .topline { align-items: flex-start; }
+      .channel { max-width: 110px; overflow-wrap: anywhere; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+      .metric { min-height: 112px; padding: 14px; }
+      .charts { grid-template-columns: 1fr; gap: 10px; }
+      .chart-card { padding: 15px 14px 10px; }
+      .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .section-heading { align-items: flex-start; flex-direction: column; }
+      .toolbar { width: 100%; }
+      .toolbar select { flex: 1; }
+      .form-footer { align-items: flex-start; flex-direction: column; }
+      .form-footer .button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topline">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">⌁</div>
+        <div>
+          <p class="eyebrow">Sistema de telemetría</p>
+          <h1>Reactor experimental</h1>
+        </div>
+      </div>
+      <div class="channel">Canal ThingSpeak<strong id="channel-id">Cargando…</strong></div>
+    </header>
+
+    <section aria-labelledby="latest-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="latest-title">Estado actual</h2>
+          <p class="subheading" id="updated-at">Todavía no se han leído mediciones</p>
+        </div>
+        <button class="button secondary" id="refresh-button" type="button">↻ <span>Actualizar lectura</span></button>
+      </div>
+      <div class="metrics" id="metrics" aria-live="polite"></div>
+    </section>
+
+    <section aria-labelledby="history-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="history-title">Historial de mediciones</h2>
+          <p class="subheading">Lecturas recientes recibidas desde ThingSpeak</p>
+        </div>
+        <div class="toolbar">
+          <label for="results-count" class="subheading">Mostrar</label>
+          <select id="results-count" aria-label="Número de mediciones">
+            <option value="10">10 lecturas</option>
+            <option value="20">20 lecturas</option>
+            <option value="50">50 lecturas</option>
+            <option value="100">100 lecturas</option>
+          </select>
+        </div>
+      </div>
+      <div class="charts" id="charts" aria-live="polite"></div>
+      <p class="subheading">Evolución de cada campo en el periodo de lecturas seleccionado.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha UTC</th>
+              <th>Carga del núcleo (%)</th>
+              <th>Estabilidad</th>
+              <th>Flujo refrigerante</th>
+              <th>Latencia (ms)</th>
+              <th>Consumo (W)</th>
+            </tr>
+          </thead>
+          <tbody id="feeds-table">
+            <tr><td class="empty" colspan="6">Cargando mediciones…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="status" id="read-status" role="status"></p>
+    </section>
+
+    <section aria-labelledby="write-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="write-title">Enviar una medición</h2>
+          <p class="subheading">Los valores se guardarán en el canal configurado</p>
+        </div>
+      </div>
+      <form class="panel form-panel" id="write-form">
+        <div class="form-grid">
+          <div class="field">
+            <label for="field1">Carga del núcleo (%)</label>
+            <input id="field1" name="field1" type="number" min="0" max="100" step="any" required>
+          </div>
+          <div class="field">
+            <label for="field2">Estabilidad del campo (0–100)</label>
+            <input id="field2" name="field2" type="number" min="0" max="100" step="any" required>
+          </div>
+          <div class="field">
+            <label for="field3">Flujo de refrigerante (0–100)</label>
+            <input id="field3" name="field3" type="number" min="0" max="100" step="any" required>
+          </div>
+          <div class="field">
+            <label for="field4">Latencia de JARVIS (ms)</label>
+            <input id="field4" name="field4" type="number" min="0" step="any" required>
+          </div>
+          <div class="field">
+            <label for="field5">Consumo de repulsores (W)</label>
+            <input id="field5" name="field5" type="number" min="0" step="any" required>
+          </div>
+        </div>
+        <div class="form-footer">
+          <p class="hint">Las cuentas gratuitas de ThingSpeak requieren al menos 15 segundos entre escrituras.</p>
+          <button class="button" id="send-button" type="submit">Enviar al canal</button>
+        </div>
+        <p class="status" id="write-status" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    const fieldLabels = [
+      ["Carga del núcleo", "%"],
+      ["Estabilidad del campo", ""],
+      ["Flujo de refrigerante", ""],
+      ["Latencia de JARVIS", "ms"],
+      ["Consumo de repulsores", "W"],
+    ];
+
+    const metrics = document.querySelector("#metrics");
+    const charts = document.querySelector("#charts");
+    const tableBody = document.querySelector("#feeds-table");
+    const readStatus = document.querySelector("#read-status");
+    const writeStatus = document.querySelector("#write-status");
+    const svgNamespace = "http://www.w3.org/2000/svg";
+
+    function formatValue(value) {
+      if (value === null || value === undefined || value === "") return "—";
+      const number = Number(value);
+      return Number.isFinite(number) ? number.toLocaleString("es-ES", { maximumFractionDigits: 2 }) : "—";
+    }
+
+    function setStatus(element, message, isError = false) {
+      element.textContent = message;
+      element.classList.toggle("error", isError);
+    }
+
+    function makeSvgElement(name, attributes = {}) {
+      const element = document.createElementNS(svgNamespace, name);
+      Object.entries(attributes).forEach(([attribute, value]) => {
+        element.setAttribute(attribute, value);
+      });
+      return element;
+    }
+
+    function formatChartDate(timestamp) {
+      return new Date(timestamp).toLocaleString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "UTC",
+      });
+    }
+
+    function renderChart(feeds, fieldIndex, label, unit) {
+      const card = document.createElement("article");
+      card.className = "panel chart-card";
+      const heading = document.createElement("div");
+      heading.className = "chart-heading";
+      const title = document.createElement("h3");
+      title.className = "chart-title";
+      title.textContent = label;
+      const unitLabel = document.createElement("span");
+      unitLabel.className = "chart-unit";
+      unitLabel.textContent = unit || "valor";
+      heading.append(title, unitLabel);
+      card.append(heading);
+
+      const timestamps = feeds.map((feed) => Date.parse(feed.created_at || ""));
+      const hasCompleteTimestamps = timestamps.every(Number.isFinite);
+      const points = feeds
+        .map((feed, index) => ({
+          value: Number(feed[`field${fieldIndex}`]),
+          timestamp: hasCompleteTimestamps ? timestamps[index] : index,
+          timeLabel: hasCompleteTimestamps ? formatChartDate(timestamps[index]) : `Lectura ${index + 1}`,
+        }))
+        .filter((point) => Number.isFinite(point.value));
+
+      const svg = makeSvgElement("svg", {
+        class: "chart",
+        viewBox: "0 0 600 230",
+        role: "img",
+        "aria-label": `Historial de ${label}`,
+      });
+      if (!points.length) {
+        const emptyText = makeSvgElement("text", {
+          class: "chart-empty",
+          x: "300",
+          y: "115",
+          "text-anchor": "middle",
+        });
+        emptyText.textContent = "Sin datos para este campo";
+        svg.append(emptyText);
+        card.append(svg);
+        return card;
+      }
+
+      const plot = { left: 62, top: 18, width: 520, height: 166 };
+      let minimum = Math.min(...points.map((point) => point.value));
+      let maximum = Math.max(...points.map((point) => point.value));
+      if (minimum === maximum) {
+        const padding = Math.max(Math.abs(minimum) * 0.05, 1);
+        minimum -= padding;
+        maximum += padding;
+      } else {
+        const padding = (maximum - minimum) * 0.12;
+        minimum -= padding;
+        maximum += padding;
+      }
+      const firstTimestamp = points[0].timestamp;
+      const lastTimestamp = points[points.length - 1].timestamp;
+      const timestampRange = lastTimestamp - firstTimestamp;
+      const coordinates = points.map((point, index) => ({
+        ...point,
+        x: plot.left + (timestampRange
+          ? ((point.timestamp - firstTimestamp) / timestampRange) * plot.width
+          : plot.width / 2),
+        y: plot.top + ((maximum - point.value) / (maximum - minimum)) * plot.height,
+        index,
+      }));
+
+      for (let tick = 0; tick <= 4; tick += 1) {
+        const y = plot.top + (plot.height / 4) * tick;
+        const value = maximum - ((maximum - minimum) / 4) * tick;
+        svg.append(makeSvgElement("line", {
+          class: "chart-grid",
+          x1: String(plot.left),
+          x2: String(plot.left + plot.width),
+          y1: String(y),
+          y2: String(y),
+        }));
+        const labelElement = makeSvgElement("text", {
+          class: "chart-axis-label",
+          x: String(plot.left - 9),
+          y: String(y + 4),
+          "text-anchor": "end",
+        });
+        labelElement.textContent = formatValue(value);
+        svg.append(labelElement);
+      }
+
+      if (coordinates.length > 1) {
+        const path = makeSvgElement("path", {
+          class: "chart-line",
+          d: coordinates.map((point, index) =>
+            `${index ? "L" : "M"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`
+          ).join(" "),
+        });
+        svg.append(path);
+      }
+
+      coordinates.forEach((point) => {
+        const circle = makeSvgElement("circle", {
+          class: "chart-point",
+          cx: String(point.x),
+          cy: String(point.y),
+          r: coordinates.length > 50 ? "2.5" : "4",
+        });
+        const tooltip = makeSvgElement("title");
+        tooltip.textContent = `${point.timeLabel} · ${formatValue(point.value)} ${unit}`;
+        circle.append(tooltip);
+        svg.append(circle);
+      });
+
+      const firstLabel = makeSvgElement("text", {
+        class: "chart-axis-label",
+        x: String(plot.left),
+        y: "216",
+        "text-anchor": "start",
+      });
+      firstLabel.textContent = points[0].timeLabel;
+      const lastLabel = makeSvgElement("text", {
+        class: "chart-axis-label",
+        x: String(plot.left + plot.width),
+        y: "216",
+        "text-anchor": "end",
+      });
+      lastLabel.textContent = points[points.length - 1].timeLabel;
+      svg.append(firstLabel, lastLabel);
+      card.append(svg);
+      return card;
+    }
+
+    function renderCharts(feeds) {
+      charts.replaceChildren();
+      fieldLabels.forEach(([label, unit], index) => {
+        charts.append(renderChart(feeds, index + 1, label, unit));
+      });
+    }
+
+    function renderMetrics(feed) {
+      metrics.replaceChildren();
+      fieldLabels.forEach(([label, unit], index) => {
+        const card = document.createElement("article");
+        card.className = "metric";
+        const title = document.createElement("div");
+        title.className = "metric-label";
+        title.textContent = label;
+        const value = document.createElement("div");
+        value.className = "metric-value";
+        value.textContent = formatValue(feed[`field${index + 1}`]);
+        if (unit) {
+          const suffix = document.createElement("span");
+          suffix.className = "metric-unit";
+          suffix.textContent = unit;
+          value.append(suffix);
+        }
+        card.append(title, value);
+        metrics.append(card);
+      });
+    }
+
+    function renderFeeds(feeds) {
+      tableBody.replaceChildren();
+      charts.replaceChildren();
+      if (!feeds.length) {
+        const row = tableBody.insertRow();
+        const cell = row.insertCell();
+        cell.colSpan = 6;
+        cell.className = "empty";
+        cell.textContent = "El canal todavía no contiene mediciones.";
+        metrics.replaceChildren();
+        return;
+      }
+
+      const chronologicalFeeds = feeds.slice().sort((first, second) =>
+        Date.parse(first.created_at || "") - Date.parse(second.created_at || "")
+      );
+      renderMetrics(chronologicalFeeds[chronologicalFeeds.length - 1]);
+      renderCharts(chronologicalFeeds);
+      chronologicalFeeds.slice().reverse().forEach((feed) => {
+        const row = tableBody.insertRow();
+        const dateCell = row.insertCell();
+        const date = feed.created_at ? new Date(feed.created_at) : null;
+        dateCell.textContent = date && !Number.isNaN(date.getTime())
+          ? date.toLocaleString("es-ES", { timeZone: "UTC", timeZoneName: "short" })
+          : "Sin fecha";
+        for (let index = 1; index <= 5; index += 1) {
+          row.insertCell().textContent = formatValue(feed[`field${index}`]);
+        }
+      });
+    }
+
+    async function refreshFeeds() {
+      const button = document.querySelector("#refresh-button");
+      button.disabled = true;
+      setStatus(readStatus, "Consultando ThingSpeak…");
+      try {
+        const results = document.querySelector("#results-count").value;
+        const response = await fetch(`/api/feeds?results=${encodeURIComponent(results)}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "No se pudo leer el canal.");
+        document.querySelector("#channel-id").textContent = data.channel_id;
+        renderFeeds(data.feeds);
+        const latest = data.feeds.reduce((mostRecent, feed) =>
+          !mostRecent || Date.parse(feed.created_at || "") > Date.parse(mostRecent.created_at || "")
+            ? feed
+            : mostRecent,
+        null);
+        document.querySelector("#updated-at").textContent = latest?.created_at
+          ? `Última medición: ${new Date(latest.created_at).toLocaleString("es-ES")}`
+          : "El canal aún no tiene mediciones";
+        setStatus(readStatus, `Lectura actualizada · ${data.feeds.length} mediciones recibidas.`);
+      } catch (error) {
+        setStatus(readStatus, error.message, true);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    document.querySelector("#refresh-button").addEventListener("click", refreshFeeds);
+    document.querySelector("#results-count").addEventListener("change", refreshFeeds);
+    document.querySelector("#write-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      if (!form.reportValidity()) return;
+
+      const button = document.querySelector("#send-button");
+      button.disabled = true;
+      setStatus(writeStatus, "Enviando medición…");
+      const payload = Object.fromEntries(
+        [...new FormData(form).entries()].map(([name, value]) => [name, Number(value)])
+      );
+      try {
+        const response = await fetch("/api/write", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "No se pudo escribir en el canal.");
+        setStatus(writeStatus, `Medición enviada correctamente · entry_id=${data.entry_id}.`);
+        form.reset();
+        await refreshFeeds();
+      } catch (error) {
+        setStatus(writeStatus, error.message, true);
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    refreshFeeds();
+  </script>
+</body>
+</html>
